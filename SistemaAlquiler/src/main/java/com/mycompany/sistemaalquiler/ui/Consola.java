@@ -55,7 +55,7 @@ public class Consola {
         do {            
             precio = leerDecimal(mensaje);
             if (!Validacion.precioValido(precio)){
-                IO.print("Precio invalido. El precio debe ser mayor a 0");
+                IO.print("Precio invalido. El precio debe ser mayor a 0\n");
             }
         } while (!Validacion.precioValido(precio));
         return precio;
@@ -66,7 +66,7 @@ public class Consola {
         do {            
             edad = leerEntero(mensaje);
             if(!Validacion.edadValida(edad)){
-                IO.print("Edad invalida. Debe ser mayor a 18 años y menor que 100 años");
+                IO.print("Edad invalida. Debe ser mayor a 18 años y menor que 100 años\n");
             }
         } while (!Validacion.edadValida(edad));
         return edad;
@@ -77,9 +77,20 @@ public class Consola {
         do{
             correo = leerTexto(mensaje);
             if (!Validacion.correoValido(correo)){
-                IO.print("Correo invalido. Formato correo: example67@exp.com");
+                IO.print("Correo invalido. Formato correo: example67@exp.com\n");
             }
         }while (!Validacion.correoValido(correo));
         return correo;
+    }
+    
+    public static String leerTelefono(String mensaje){
+        String tel;
+        do {            
+            tel = leerTexto(mensaje);
+            if (!Validacion.esTelefonoValido(tel)){
+                IO.print("Telefono invalido. Formato. 7132-1234\n");
+            }
+        } while (!Validacion.esTelefonoValido(tel));
+        return tel;
     }
 }

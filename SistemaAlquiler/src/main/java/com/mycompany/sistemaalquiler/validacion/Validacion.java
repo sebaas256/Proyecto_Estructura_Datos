@@ -23,10 +23,14 @@ public class Validacion {
     }
     
     public static boolean correoValido(String correo){
-        return correo != null && correo.matches("/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$/");
+        return correo != null && correo.matches("^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$");
     }
     
     public static boolean textoValido(String texto){
         return texto != null && !texto.trim().isEmpty();
     }
+    
+    public static boolean esTelefonoValido(String telefono) {
+    return telefono != null && telefono.trim().matches("^[267]\\d{3}-?\\d{4}$");
+}
 }

@@ -4,10 +4,9 @@
  */
 package com.mycompany.sistemaalquiler.ui;
 
-/**
- *
- * @author sebastian
- */
+import com.mycompany.sistemaalquiler.modelo.Cliente;
+import com.mycompany.sistemaalquiler.servicio.ClienteServicio;
+
 public class MenuPrincipal {
     public void mostrar(){
         int opccion;
@@ -24,13 +23,26 @@ public class MenuPrincipal {
             IO.print("======================================================================\n");
             
             opccion = Consola.leerEntero("Ingrese una opccion: ");
+            ClienteServicio clienteServicio = new ClienteServicio();
             
             switch(opccion){
                 case 1->{
                     
                 }
                 case 2 ->{
+                    String codigo = clienteServicio.generarCodigo();
+                    String nombre = Consola.leerTexto("Nombre: ");
+                    String apellido = Consola.leerTexto("Apellido: ");
+                    String dui = Consola.leerDui("DUI: ");
+                    int edad = Consola.leerEdad("Edad: ");
+                    String correo = Consola.leerCorreo("Correo: ");
+                    String telefono = Consola.leerTexto("Telefono: ");
+                    String direccion = Consola.leerTexto("Direccion: ");
                     
+                    Cliente c = new Cliente(codigo, nombre, apellido, dui, edad, correo, telefono, direccion);
+                    if (clienteServicio.registrar(c)){
+                        IO.print("Cliente registrado con codigo " + codigo + "\n");
+                    }
                 }
                 case 3->{
                     
