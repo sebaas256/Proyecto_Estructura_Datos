@@ -9,11 +9,16 @@ package com.mycompany.sistemaalquiler;
  */
 import static com.mycompany.sistemaalquiler.datos.ConexionDB.obtener;
 import com.mycompany.sistemaalquiler.ui.MenuPrincipal;
+import com.mycompany.sistemaalquiler.ui.Login;
 import java.sql.Connection;
 import java.sql.SQLException;
 
 public class SistemaAlquiler {
     void main() {
+        //LOGIN inicia antes que nada
+                if (!Login.iniciar()) {
+                    return;
+                }
         //debug para la BD
          try (Connection con = obtener()) {
             System.out.println("Conectado a: " + con.getCatalog());
