@@ -93,4 +93,39 @@ public class Consola {
         } while (!Validacion.esTelefonoValido(tel));
         return tel;
     }
+
+public static int leerEnteroNoNegativo(String mensaje) {
+    int valor;
+    do {
+        valor = leerEntero(mensaje);
+        if (valor < 0) IO.print("No se permiten valores negativos.\n");
+    } while (valor < 0);
+    return valor;
+}
+
+public static String leerEstado() {
+    IO.print("1- Disponible\n2- Alquilado\n3- Mantenimiento\n");
+    int op;
+    do {
+        op = leerEntero("Seleccione el estado: ");
+    } while (op < 1 || op > 3);
+    return switch (op) {
+        case 1 -> "Disponible";
+        case 2 -> "Alquilado";
+        default -> "Mantenimiento";
+    };
+}
+
+// Devuelve null si el usuario deja el campo vacío
+public static java.time.LocalDate leerFechaOpcional(String mensaje) {
+    while (true) {
+        String texto = IO.readln(mensaje).trim();
+        if (texto.isEmpty()) return null;
+        try {
+            return java.time.LocalDate.parse(texto);   // formato AAAA-MM-DD
+        } catch (java.time.format.DateTimeParseException e) {
+            IO.print("Formato invalido. Use AAAA-MM-DD (ejemplo: 2026-12-31).\n");
+        }
+    }
+}
 }
