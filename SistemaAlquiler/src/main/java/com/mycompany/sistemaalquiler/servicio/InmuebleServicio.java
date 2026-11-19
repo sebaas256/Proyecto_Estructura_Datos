@@ -1,4 +1,3 @@
-
 package com.mycompany.sistemaalquiler.servicio;
 
 import com.mycompany.sistemaalquiler.datos.InmueblesDAO;
@@ -12,14 +11,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class InmuebleServicio {
+
     private final InmueblesDAO dao = new InmueblesDAO();
     private final TipoInmuebleDAO tipoDAO = new TipoInmuebleDAO();
     private final ListaEnlazada<Inmueble> inmuebles = new ListaEnlazada<>();
     private final List<TipoInmueble> tipos;
     private int siguienteCodigo = 1;
-    
+
     public InmuebleServicio() {
-        tipos = tipoDAO.listar();                 
+        tipos = tipoDAO.listar();
         for (Inmueble i : dao.listar()) {
             inmuebles.agregar(i);
             if (i.getId() >= siguienteCodigo) {
@@ -39,14 +39,18 @@ public class InmuebleServicio {
 
     public boolean existeTipo(int id) {
         for (TipoInmueble t : tipos) {
-            if (t.getId() == id) return true;
+            if (t.getId() == id) {
+                return true;
+            }
         }
         return false;
     }
 
     public String nombreTipo(int id) {
         for (TipoInmueble t : tipos) {
-            if (t.getId() == id) return t.getNombre();
+            if (t.getId() == id) {
+                return t.getNombre();
+            }
         }
         return "Desconocido";
     }
@@ -68,7 +72,9 @@ public class InmuebleServicio {
     // Busqueda (Recorren las listas enlazadas)
     public Inmueble buscarPorCodigo(String codigo) {
         for (Inmueble i : inmuebles) {
-            if (i.getCodigo().equalsIgnoreCase(codigo)) return i;
+            if (i.getCodigo().equalsIgnoreCase(codigo)) {
+                return i;
+            }
         }
         return null;
     }
@@ -86,7 +92,7 @@ public class InmuebleServicio {
     public ArrayList<Inmueble> buscarPorTipo(int tipoId) {
         ArrayList<Inmueble> resultados = new ArrayList<>();
         for (Inmueble i : inmuebles) {
-            if (i.getTipo_inmueble_id()== tipoId) {
+            if (i.getTipo_inmueble_id() == tipoId) {
                 resultados.add(i);
             }
         }
@@ -123,4 +129,35 @@ public class InmuebleServicio {
     public ListaEnlazada<Inmueble> getInmuebles() {
         return inmuebles;
     }
+
+    public boolean actualizarEstadoInmueble(String codigo, String nuevoEstado, LocalDate fechaDisponible) {
+        Inmueble inm = buscarPorCodigo(codigo);
+        if (inm == null || nuevoEstado == null || nuevoEstado.trim().isEmpty()) {
+            return false;
+        }
+        String estadoLimpio = nuevoEstado.trim();
+        boolean actualizado = dao.actualizarEstado(inm.getId(), estadoLimpio, fechaDisponible);
+        if (actualizado) {
+            inm.setEstado(estadoLimpio);
+            inm.setFechaDisponible(fechaDisponible);
+        }
+        return actualizado;
+    }
+
+    public ArrayList<Inmueble> obtenerCatalogoCompleto() {
+        ArrayList<Inmueble> lista = new ArrayList<>();
+        for (Inmueble i : inmuebles) {
+            lista.add(i);
+        }
+        return lista;
+    }
+
+    public boolean marcarComoAlquilado(String codigo, LocalDate fechaFinContrato) {
+        return actualizarEstadoInmueble(codigo, "Alquilado", fechaFinContrato);
+    }
+
+    public boolean liberarInmueble(String codigo) {
+        return actualizarEstadoInmueble(codigo, "Disponible", null);
+    }
+
 }

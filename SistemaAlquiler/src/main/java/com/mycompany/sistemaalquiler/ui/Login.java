@@ -33,7 +33,7 @@ public class Login {
  
 // PRIMERA VEZ en cada computadora (una sola vez):
 // quitar los // de la linea de abajo correr y volver a comentarla.
-//UsuarioDB.crearAdminInicial();
+UsuarioDB.crearAdminInicial();
  
         mostrarBanner(); //visual
  
