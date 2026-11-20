@@ -48,7 +48,7 @@ public class ClienteDAO {
                 }
             }
             } catch (SQLException e) {
-                IO.print("Error al insertar cliente: " + e.getMessage());
+                IO.print("Error al insertar cliente: " + e.getMessage() + "\n");
             }
         return false;
         }
@@ -66,7 +66,7 @@ public class ClienteDAO {
                 }
             }
             } catch (SQLException e) {
-                IO.print("Error al buscar cliente: " + e.getMessage());
+                IO.print("Error al buscar cliente: " + e.getMessage() + "\n");
             }
         return null;
         } 
@@ -83,7 +83,7 @@ public class ClienteDAO {
                 lista.add(mapear(rs));
             }
         }catch(SQLException e){
-            IO.print("Error al listar los clientes: " + e.getMessage());
+            IO.print("Error al listar los clientes: " + e.getMessage() + "\n");
         }
         return lista;
     }
@@ -101,7 +101,7 @@ public class ClienteDAO {
             ps.setInt(6, c.getId());
             return ps.executeUpdate() > 0;
     }catch (SQLException e){
-        IO.print("Error al actualizar cliente: " + e.getMessage() );
+        IO.print("Error al actualizar cliente: " + e.getMessage() + "\n");
                 return false;
         }
     }
@@ -115,7 +115,7 @@ public class ClienteDAO {
             ps.setInt(1, id);
             return ps.executeUpdate() > 0;
         }catch (SQLException e){
-            IO.print("Error al eliminar cliente: " + e.getMessage());
+            IO.print("Error al eliminar cliente: " + e.getMessage() + "\n");
             return false;
         }
     }

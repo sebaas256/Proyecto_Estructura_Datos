@@ -12,11 +12,23 @@ public class Consola {
     public static int leerEntero(String mensaje){
         while (true) {            
             try {
-                return Integer.parseInt(IO.readln(mensaje.trim()));
+                return Integer.parseInt(IO.readln(mensaje).trim());
             } catch (NumberFormatException e) {
                 IO.print("Debe ingresar un numero entero.\n");
             }
         }
+    }
+    
+    // Pide un entero y repite hasta que este entre minimo y maximo (inclusive)
+    public static int leerEnRango(String mensaje, int minimo, int maximo){
+        int valor;
+        do {
+            valor = leerEntero(mensaje);
+            if (valor < minimo || valor > maximo){
+                IO.print("Opcion fuera de rango (" + minimo + " a " + maximo + ").\n");
+            }
+        } while (valor < minimo || valor > maximo);
+        return valor;
     }
     
     public static String leerTexto(String mensaje){
@@ -32,7 +44,7 @@ public class Consola {
     public static Double leerDecimal(String mensaje){
         while (true) {            
             try {
-                return Double.parseDouble(IO.readln(mensaje.trim()));
+                return Double.parseDouble(IO.readln(mensaje).trim());
             } catch (NumberFormatException e) {
                 IO.print("Debes ingresar un numero decimal valido.\n");
             }

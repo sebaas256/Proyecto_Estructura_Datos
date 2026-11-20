@@ -4,6 +4,7 @@
  */
 package com.mycompany.sistemaalquiler.estructuras;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 
 //<T> es un comodin para el tipo de dato en ves de crear muchas listas como clientes, inmuebles... se coloca ese comodin y se usa esta lista generica
@@ -54,6 +55,25 @@ public class ListaEnlazada <T> implements  Iterable<T>{
     
     public int tamanio() {return tamanio;}
     public boolean estaVacia(){return cabeza == null; }
+
+    // Devuelve el elemento de la posicion indicada (0 = primero) o null si no existe
+    public T obtener(int posicion){
+        if (posicion < 0 || posicion >= tamanio) return null;
+        Nodo actual = cabeza;
+        for (int i = 0; i < posicion; i++){
+            actual = actual.siguiente;
+        }
+        return actual.dato;
+    }
+    
+    // Copia la lista a un ArrayList (necesario para ordenar y para busqueda binaria, que usan indices)
+    public ArrayList<T> aArrayList(){
+        ArrayList<T> copia = new ArrayList<>();
+        for (T dato : this){
+            copia.add(dato);
+        }
+        return copia;
+    }
     
     @Override
     public Iterator<T> iterator(){

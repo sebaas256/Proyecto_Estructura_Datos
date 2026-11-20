@@ -2,12 +2,15 @@ package com.mycompany.sistemaalquiler.servicio;
 
 import com.mycompany.sistemaalquiler.datos.InmueblesDAO;
 import com.mycompany.sistemaalquiler.datos.TipoInmuebleDAO;
+import com.mycompany.sistemaalquiler.estructuras.Busqueda;
 import com.mycompany.sistemaalquiler.estructuras.ListaEnlazada;
+import com.mycompany.sistemaalquiler.estructuras.Ordenamiento;
 import com.mycompany.sistemaalquiler.modelo.Inmueble;
 import com.mycompany.sistemaalquiler.modelo.TipoInmueble;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class InmuebleServicio {
@@ -145,11 +148,34 @@ public class InmuebleServicio {
     }
 
     public ArrayList<Inmueble> obtenerCatalogoCompleto() {
-        ArrayList<Inmueble> lista = new ArrayList<>();
-        for (Inmueble i : inmuebles) {
-            lista.add(i);
+        return inmuebles.aArrayList();
+    }
+
+    // BUSQUEDA BINARIA por codigo: ordena una copia por codigo y luego divide el rango a la mitad
+    public Inmueble buscarPorCodigoBinaria(String codigo) {
+        ArrayList<Inmueble> ordenados = inmuebles.aArrayList();
+        Ordenamiento.insercion(ordenados, Comparator.comparing(Inmueble::getCodigo));
+        int posicion = Busqueda.binaria(ordenados, codigo.trim().toUpperCase(), Inmueble::getCodigo);
+        return posicion >= 0 ? ordenados.get(posicion) : null;
+    }
+
+    // Ordena la lista recibida segun el criterio y devuelve el nombre del algoritmo usado
+    // criterio: 1 = precio mensual, 2 = nombre, 3 = capacidad
+    public String ordenarCatalogo(ArrayList<Inmueble> lista, int criterio) {
+        switch (criterio) {
+            case 1 -> {
+                Ordenamiento.seleccion(lista, Comparator.comparingDouble(Inmueble::getPrecio_mensual));
+                return "seleccion";
+            }
+            case 2 -> {
+                Ordenamiento.insercion(lista, Comparator.comparing(Inmueble::getNombre, String.CASE_INSENSITIVE_ORDER));
+                return "insercion";
+            }
+            default -> {
+                Ordenamiento.burbuja(lista, Comparator.comparingInt(Inmueble::getCapacidad));
+                return "burbuja";
+            }
         }
-        return lista;
     }
 
     public boolean marcarComoAlquilado(String codigo, LocalDate fechaFinContrato) {

@@ -5,10 +5,13 @@
 package com.mycompany.sistemaalquiler.servicio;
 
 import com.mycompany.sistemaalquiler.datos.ClienteDAO;
+import com.mycompany.sistemaalquiler.estructuras.Busqueda;
 import com.mycompany.sistemaalquiler.estructuras.ListaEnlazada;
+import com.mycompany.sistemaalquiler.estructuras.Ordenamiento;
 import com.mycompany.sistemaalquiler.estructuras.Pila;
 import com.mycompany.sistemaalquiler.modelo.Cliente;
 import java.util.ArrayList;
+import java.util.Comparator;
 
 public class ClienteServicio {
     private final ClienteDAO dao = new ClienteDAO();
@@ -70,7 +73,7 @@ public class ClienteServicio {
     
     public Cliente buscarPorCodigo(String codigo){
         for (Cliente c : clientes){
-            if(c.getCodigo().equalsFoldCase(codigo)) return c;
+            if(c.getCodigo().equalsIgnoreCase(codigo)) return c;
         }
         return null;
     }
@@ -83,6 +86,27 @@ public class ClienteServicio {
             }
         }
         return resultados;
+    }
+    
+    //Busqueda binaria por DUI: ordena una copia por DUI y divide el rango a la mitad
+    public Cliente buscarPorDuiBinaria(String dui){
+        ArrayList<Cliente> ordenados = clientes.aArrayList();
+        Ordenamiento.insercion(ordenados, Comparator.comparing(Cliente::getDui));
+        int posicion = Busqueda.binaria(ordenados, dui.trim(), Cliente::getDui);
+        return posicion >= 0 ? ordenados.get(posicion) : null;
+    }
+    
+    //Listado de clientes ordenado alfabeticamente por nombre y apellido (burbuja)
+    public ArrayList<Cliente> listarOrdenadosPorNombre(){
+        ArrayList<Cliente> lista = clientes.aArrayList();
+        Ordenamiento.burbuja(lista, Comparator.comparing(
+                (Cliente c) -> c.getNombre() + " " + c.getApellido(), String.CASE_INSENSITIVE_ORDER));
+        return lista;
+    }
+    
+    //Ultimo cliente registrado en esta sesion (tope de la pila) sin deshacerlo
+    public Cliente ultimoRegistrado(){
+        return historial.peek();
     }
     
     public ListaEnlazada<Cliente> getClientes() {return clientes;}

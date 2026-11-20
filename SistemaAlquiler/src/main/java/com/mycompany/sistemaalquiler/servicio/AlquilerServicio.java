@@ -1,37 +1,63 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.mycompany.sistemaalquiler.servicio;
 
-/**
- *
- * @author xd
- */
 import com.mycompany.sistemaalquiler.datos.FacturaDAO;
+import com.mycompany.sistemaalquiler.estructuras.Cola;
+import com.mycompany.sistemaalquiler.estructuras.Pila;
 import com.mycompany.sistemaalquiler.modelo.Cliente;
 import com.mycompany.sistemaalquiler.modelo.ContratoAlquiler;
 import com.mycompany.sistemaalquiler.modelo.Inmueble;
+import com.mycompany.sistemaalquiler.modelo.VentaRegistro;
 import java.time.LocalDate;
-import java.util.ArrayDeque;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Queue;
 
 public class AlquilerServicio {
 
     public static final double IVA_DEFAULT = 0.13;
+    public static final double CARGO_ADMINISTRATIVO = 15.00; // pago adicional fijo por contrato
+    public static final double DESCUENTO_MAXIMO = 0.50;
+
     private final FacturaDAO facturaDAO = new FacturaDAO();
     private final InmuebleServicio inmuebleServicio;
-    private final Queue<ContratoAlquiler> colaVentas = new ArrayDeque<>();
-    private final ArrayList<ContratoAlquiler> historialVentas = new ArrayList<>();
+
+    // COLA (FIFO): las ventas se atienden en el orden en que se registraron
+    private final Cola<ContratoAlquiler> colaVentas = new Cola<>();
+    // PILA (LIFO): ventas ya procesadas; la ultima en procesarse es la primera que se puede anular
+    private final Pila<ContratoAlquiler> pilaProcesadas = new Pila<>();
+    // Historial completo (BD + sesion actual) para los reportes
+    private final ArrayList<VentaRegistro> historialVentas = new ArrayList<>();
 
     public AlquilerServicio(InmuebleServicio inmuebleServicio) {
         this.inmuebleServicio = inmuebleServicio;
+        ContratoAlquiler.iniciarSecuencia(facturaDAO.ultimaSecuencia());
+        historialVentas.addAll(facturaDAO.listarRegistros());
     }
 
-    public static double calcularDescuentoSugerido(LocalDate inicio, LocalDate fin, boolean porMes) {
-        long dias = Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(inicio, fin));
+    // ---------- DESCUENTOS (estructuras selectivas switch / if) ----------
+    public static String nombreMetodoPago(int metodo) {
+        return switch (metodo) {
+            case 1 -> "Efectivo";
+            case 2 -> "Tarjeta";
+            case 3 -> "Cheque";
+            default -> "Otro";
+        };
+    }
+
+    public static double descuentoPorMetodo(int metodo) {
+        return switch (metodo) {
+            case 1 -> 0.05;   // efectivo
+            case 2 -> 0.02;   // tarjeta
+            case 3 -> 0.03;   // cheque
+            default -> 0.0;
+        };
+    }
+
+    public static double descuentoPorPlazo(LocalDate inicio, LocalDate fin, boolean porMes) {
+        long dias = Math.max(1, ChronoUnit.DAYS.between(inicio, fin));
         int meses = (int) Math.round(dias / 30.0);
+        if (porMes && meses >= 12) {
+            return 0.15;
+        }
         if (porMes && meses >= 6) {
             return 0.10;
         }
@@ -41,94 +67,88 @@ public class AlquilerServicio {
         return 0.0;
     }
 
+    // ---------- COLA DE VENTAS ----------
     public ContratoAlquiler encolarContrato(Cliente cliente, Inmueble inmueble,
             LocalDate fechaInicio, LocalDate fechaFin,
-            boolean porMes, double porcentajeDescuento) {
+            boolean porMes, String metodoPago, double porcentajeDescuento) {
         if (cliente == null || inmueble == null || fechaInicio == null || fechaFin == null) {
             return null;
         }
         if (!"Disponible".equalsIgnoreCase(inmueble.getEstado())) {
-            IO.print("El inmueble " + inmueble.getCodigo() + " no está disponible (estado actual: " + inmueble.getEstado() + ").\n");
+            IO.print("El inmueble " + inmueble.getCodigo() + " no esta disponible (estado actual: " + inmueble.getEstado() + ").\n");
             return null;
         }
-        if (fechaFin.isBefore(fechaInicio)) {
-            IO.print("La fecha de fin no puede ser anterior a la fecha de inicio.\n");
+        if (!fechaFin.isAfter(fechaInicio)) {
+            IO.print("La fecha de fin debe ser posterior a la fecha de inicio.\n");
             return null;
+        }
+        // Un mismo inmueble no puede estar dos veces en la cola
+        for (ContratoAlquiler pendiente : colaVentas) {
+            if (pendiente.getInmueble().getId() == inmueble.getId()) {
+                IO.print("El inmueble " + inmueble.getCodigo() + " ya esta en la cola de ventas pendientes.\n");
+                return null;
+            }
         }
 
-        ContratoAlquiler contrato = new ContratoAlquiler(
-                cliente, inmueble, fechaInicio, fechaFin, porMes, porcentajeDescuento, IVA_DEFAULT
-        );
-        colaVentas.offer(contrato);
+        ContratoAlquiler contrato = new ContratoAlquiler(cliente, inmueble, fechaInicio, fechaFin,
+                porMes, metodoPago, Math.min(DESCUENTO_MAXIMO, porcentajeDescuento),
+                IVA_DEFAULT, CARGO_ADMINISTRATIVO);
+        colaVentas.encolar(contrato);
         return contrato;
     }
 
     public int cantidadEnCola() {
-        return colaVentas.size();
+        return colaVentas.tamanio();
     }
 
-    public ArrayList<ContratoAlquiler> procesarCola() {
+    // Atiende la cola en orden FIFO: marca el inmueble como alquilado, guarda y muestra la factura
+    public ArrayList<ContratoAlquiler> procesarCola(String usuario) {
         ArrayList<ContratoAlquiler> procesados = new ArrayList<>();
-        while (!colaVentas.isEmpty()) {
-            ContratoAlquiler c = colaVentas.poll();
-            boolean actualizado = inmuebleServicio.actualizarEstadoInmueble(
-                    c.getInmueble().getCodigo(), "Alquilado", c.getCliente() != null ? null : null
-            );
+        while (!colaVentas.estaVacia()) {
+            ContratoAlquiler c = colaVentas.desencolar();
+
+            // el inmueble queda ocupado hasta que termine el contrato
+            boolean actualizado = inmuebleServicio.marcarComoAlquilado(c.getInmueble().getCodigo(), c.getFechaFin());
             if (!actualizado) {
+                IO.print("Aviso: no se pudo actualizar el estado de " + c.getInmueble().getCodigo() + " en la BD.\n");
                 c.getInmueble().setEstado("Alquilado");
+                c.getInmueble().setFechaDisponible(c.getFechaFin());
             }
-            boolean guardada = facturaDAO.insertar(c);
-            if (!guardada) {
-                IO.print("Aviso: la factura " + c.getNumeroFactura() + " se generó en memoria pero no pudo guardarse en BD.\n");
+
+            if (!facturaDAO.insertar(c, usuario)) {
+                IO.print("Aviso: la factura " + c.getNumeroFactura() + " no pudo guardarse en la BD.\n");
             }
-            historialVentas.add(c);
+            historialVentas.add(VentaRegistro.de(c));
+            pilaProcesadas.push(c);
             procesados.add(c);
-            IO.print(c.generarFacturaTexto() + "\n"); // Req. 8: Factura
+            IO.print(c.generarFacturaTexto() + "\n");
         }
         return procesados;
     }
 
-    // Reporte general 
-    public String generarReporteVentas() {
-        if (historialVentas.isEmpty()) {
-            return "No hay ventas/alquileres procesados en el historial.\n";
-        }
-
-        double totalBase = 0;
-        double totalDescuentos = 0;
-        double totalIva = 0;
-        double totalGeneral = 0;
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("====================================================================\n");
-        sb.append("                       REPORTE GENERAL DE VENTAS                    \n");
-        sb.append("====================================================================\n");
-
-        for (ContratoAlquiler c : historialVentas) {
-            sb.append(String.format("%s | Inm: %-8s | Cliente: %-18s | Total: $%,9.2f%n",
-                    c.getNumeroFactura(),
-                    c.getInmueble().getCodigo(),
-                    c.getCliente().getNombre() + " " + c.getCliente().getApellido(),
-                    c.getTotalPagar()
-            ));
-            totalBase += c.getPrecioBase();
-            totalDescuentos += c.getMontoDescuento();
-            totalIva += c.getMontoIva();
-            totalGeneral += c.getTotalPagar();
-        }
-
-        sb.append("--------------------------------------------------------------------\n");
-        sb.append("Total de operaciones: ").append(historialVentas.size()).append("\n");
-        sb.append(String.format("Suma montos base:   $%,10.2f%n", totalBase));
-        sb.append(String.format("Total descuentos:   $%,10.2f%n", totalDescuentos));
-        sb.append(String.format("Total IVA:          $%,10.2f%n", totalIva));
-        sb.append(String.format("INGRESOS TOTALES:   $%,10.2f%n", totalGeneral));
-        sb.append("====================================================================\n");
-        return sb.toString();
+    // ---------- ANULAR (usa la pila: LIFO) ----------
+    public ContratoAlquiler ultimaVentaProcesada() {
+        return pilaProcesadas.peek();
     }
 
-    public ArrayList<ContratoAlquiler> getHistorialVentas() {
+    // Anula la ultima venta procesada en esta sesion: borra la factura y libera el inmueble
+    public ContratoAlquiler anularUltimaVenta() {
+        if (pilaProcesadas.estaVacia()) {
+            return null;
+        }
+        ContratoAlquiler c = pilaProcesadas.pop();
+        facturaDAO.eliminarPorNumero(c.getNumeroFactura());
+        inmuebleServicio.liberarInmueble(c.getInmueble().getCodigo());
+        for (int i = historialVentas.size() - 1; i >= 0; i--) {
+            if (historialVentas.get(i).numeroFactura().equals(c.getNumeroFactura())) {
+                historialVentas.remove(i);
+                break;
+            }
+        }
+        return c;
+    }
+
+    public ArrayList<VentaRegistro> getHistorialVentas() {
         return historialVentas;
     }
-
 }

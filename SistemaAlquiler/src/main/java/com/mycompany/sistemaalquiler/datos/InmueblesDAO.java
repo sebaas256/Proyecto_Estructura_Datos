@@ -62,7 +62,7 @@ public class InmueblesDAO {
                 }
             }
         }catch(SQLException e){
-            IO.print("error al insertar inmueble: " + e.getMessage());
+            IO.print("error al insertar inmueble: " + e.getMessage() + "\n");
         }
         return false;
     }
@@ -79,7 +79,7 @@ public class InmueblesDAO {
                 }
             }
         }catch (SQLException e){
-            IO.print("Error al buscar por codigo: "+ e.getMessage());
+            IO.print("Error al buscar por codigo: "+ e.getMessage() + "\n");
         }
         return null;
     }
@@ -94,7 +94,7 @@ public class InmueblesDAO {
                 lista.add(mapear(rs));
             }
         }catch (SQLException e){
-            IO.print("Error al listar los inmuebles: " + e.getMessage());
+            IO.print("Error al listar los inmuebles: " + e.getMessage() + "\n");
         }
         return lista;
     }
@@ -107,7 +107,7 @@ public class InmueblesDAO {
             ps.setInt(1, id);
             return ps.executeUpdate() > 0;
         }catch(SQLException e){
-            IO.print("Error al eliminar inmueble: " + e.getMessage());
+            IO.print("Error al eliminar inmueble: " + e.getMessage() + "\n");
         }
         return false;
     }
